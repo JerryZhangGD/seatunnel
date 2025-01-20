@@ -91,15 +91,40 @@ public abstract class ChunkSplitter implements AutoCloseable, Serializable {
 
         Collection<JdbcSourceSplit> splits;
         Optional<SeaTunnelRowType> splitKeyOptional = findSplitKey(table);
-        if (!splitKeyOptional.isPresent()) {
+        int sampleNum = config.getSampleNum();
+        if (!splitKeyOptional.isPresent()||(sampleNum>0&&sampleNum<=1000000)) {
             JdbcSourceSplit split = createSingleSplit(table);
+            if(sampleNum>0){
+                split.setSplitFetchSize(sampleNum);
+            }
             splits = Collections.singletonList(split);
         } else {
             if (splitKeyOptional.get().getTotalFields() != 1) {
                 throw new UnsupportedOperationException("Currently, only support one split key");
             }
             splits = createSplits(table, splitKeyOptional.get());
+
+            if(sampleNum>0){
+                int size = splits.size();
+                if(size>0){
+                    int splitFetchSize = sampleNum / size;
+                    if(splitFetchSize>=0){
+                        int i=1;
+                        for(JdbcSourceSplit split:splits){
+                            if(i==size){
+                                split.setSplitFetchSize(sampleNum-splitFetchSize*(size-1));
+                            }else {
+                                split.setSplitFetchSize(splitFetchSize);
+                            }
+                            i++;
+                        }
+                    }
+                }
+            }
         }
+
+
+
 
         long end = System.currentTimeMillis();
         log.info(

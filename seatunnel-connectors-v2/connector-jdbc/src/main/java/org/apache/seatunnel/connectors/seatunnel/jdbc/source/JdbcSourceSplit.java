@@ -36,6 +36,17 @@ public class JdbcSourceSplit implements SourceSplit {
     private final SeaTunnelDataType splitKeyType;
     private final Object splitStart;
     private final Object splitEnd;
+    private Integer splitFetchSize;
+
+    public JdbcSourceSplit(TablePath tablePath, String splitId, String splitQuery, String splitKeyName, SeaTunnelDataType splitKeyType, Object splitStart, Object splitEnd) {
+        this.tablePath = tablePath;
+        this.splitId = splitId;
+        this.splitQuery = splitQuery;
+        this.splitKeyName = splitKeyName;
+        this.splitKeyType = splitKeyType;
+        this.splitStart = splitStart;
+        this.splitEnd = splitEnd;
+    }
 
     @Override
     public String splitId() {

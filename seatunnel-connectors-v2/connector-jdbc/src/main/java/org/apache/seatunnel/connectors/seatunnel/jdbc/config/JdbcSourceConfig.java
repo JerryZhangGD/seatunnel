@@ -42,6 +42,7 @@ public class JdbcSourceConfig implements Serializable {
     private double splitEvenDistributionFactorLowerBound;
     private int splitSampleShardingThreshold;
     private int splitInverseSamplingRate;
+    private int sampleNum;
     private boolean decimalTypeNarrowing;
 
     public static JdbcSourceConfig of(ReadonlyConfig config) {
@@ -64,6 +65,8 @@ public class JdbcSourceConfig implements Serializable {
         builder.splitSampleShardingThreshold(
                 config.get(JdbcSourceOptions.SPLIT_SAMPLE_SHARDING_THRESHOLD));
         builder.splitInverseSamplingRate(config.get(JdbcSourceOptions.SPLIT_INVERSE_SAMPLING_RATE));
+
+        builder.sampleNum(config.get(JdbcSourceOptions.SAMPLE_NUM));
 
         builder.decimalTypeNarrowing(config.get(JdbcOptions.DECIMAL_TYPE_NARROWING));
 

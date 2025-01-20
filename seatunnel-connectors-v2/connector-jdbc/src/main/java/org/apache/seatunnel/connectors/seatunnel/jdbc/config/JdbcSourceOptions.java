@@ -94,6 +94,12 @@ public interface JdbcSourceOptions {
                                     + "For example, a value of 1000 means a sampling rate of 1/1000. "
                                     + "This parameter is used when the sample sharding strategy is triggered.");
 
+    Option<Integer> SAMPLE_NUM =
+            Options.key("sample_num")
+                    .intType()
+                    .defaultValue(0)
+                    .withDescription("Use for select sample data from table");
+
     Option<Boolean> USE_SELECT_COUNT =
             Options.key("use_select_count")
                     .booleanType()
