@@ -120,4 +120,12 @@ public class SapHanaDialect implements JdbcDialect {
 
         return Optional.of(upsertSQL);
     }
+    public String hashModForField(String fieldName, int mod) {
+        return "MOD(ASCII(TO_VARCHAR(HASH_MD5(TO_BINARY(" + this.quoteIdentifier(fieldName) + "))))," + mod + ")";
+    }
+
+    public String tableIdentifier(TablePath tablePath) {
+        return tablePath.getFullNameWithQuoted("\"");
+    }
+
 }
