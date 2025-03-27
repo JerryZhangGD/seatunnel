@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 
 public class SapHanaDialect implements JdbcDialect {
     @Override
@@ -127,5 +128,4 @@ public class SapHanaDialect implements JdbcDialect {
     public String tableIdentifier(TablePath tablePath) {
         return tablePath.getFullNameWithQuoted("\"");
     }
-
 }
