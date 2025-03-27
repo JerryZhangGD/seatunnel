@@ -54,7 +54,7 @@ seatunnel:
 
 ```json
 {
-    "projectVersion":"2.3.5-SNAPSHOT",
+    "projectVersion":"2.3.10-SNAPSHOT",
     "gitCommitAbbrev":"DeadD0d0",
     "totalSlot":"0",
     "unassignedSlot":"0",
@@ -476,6 +476,40 @@ sink {
 {
     "jobId": 733584788375666689,
     "jobName": "rest_api_test"
+}
+```
+
+</details>
+
+------------------------------------------------------------------------------------------
+
+### Submit A Job By Upload Config File
+
+<details>
+<summary><code>POST</code> <code><b>/submit-job/upload</b></code> <code>(Returns jobId and jobName if job submitted successfully.)</code></summary>
+
+#### Parameters
+
+> | name                 |   type   | data type |            description            |
+> |----------------------|----------|-----------|-----------------------------------|
+> | jobId                | optional | string    | job id                            |
+> | jobName              | optional | string    | job name                          |
+> | isStartWithSavePoint | optional | string    | if job is started with save point |
+
+#### Request Body
+The name of the uploaded file key is config_file, and the file suffix json is parsed in json format. The conf or config file suffix is parsed in hocon format
+
+curl Example :
+```
+curl --location 'http://127.0.0.1:8080/submit-job/upload' --form 'config_file=@"/temp/fake_to_console.conf"'
+
+```
+#### Responses
+
+```json
+{
+    "jobId": 733584788375666689,
+    "jobName": "SeaTunnel_Job"
 }
 ```
 
