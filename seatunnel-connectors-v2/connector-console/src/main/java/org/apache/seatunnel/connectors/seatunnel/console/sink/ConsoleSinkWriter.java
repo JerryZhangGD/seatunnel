@@ -80,6 +80,7 @@ public class ConsoleSinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void>
             arr[i] = fieldToString(fieldTypes[i], fields[i]);
         }
         if (isPrintData) {
+            System.out.println(StringUtils.join(arr, ", "));
             log.info(
                     "subtaskIndex={}  rowIndex={}:  SeaTunnelRow#tableId={} SeaTunnelRow#kind={} : {}",
                     context.getIndexOfSubtask(),

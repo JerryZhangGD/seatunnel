@@ -258,11 +258,50 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
     private List<List<String>> decodeJSON(String data) {
         ReadContext jsonReadContext = JsonPath.using(jsonConfiguration).parse(data);
         List<List<String>> results = new ArrayList<>(jsonPaths.length);
+        List<List<String>> results2 = new ArrayList<>(jsonPaths.length);
         for (JsonPath path : jsonPaths) {
             List<String> result = jsonReadContext.read(path);
             results.add(result);
         }
-        for (int i = 1; i < results.size(); i++) {
+        Boolean hasArray = false;
+        Integer maxArraySize = 0;
+        Integer arrayNum = 0;
+        for(List<String> result:results){
+            if(result.size()>1){
+                arrayNum++;
+                hasArray = true;
+                if(result.size()>maxArraySize){
+                    maxArraySize = result.size();
+                }
+            }
+        }
+        /*if(arrayNum>1){
+            throw new HttpConnectorException(
+                    HttpConnectorErrorCode.FIELD_DATA_IS_INCONSISTENT,
+                    String.format("选定的jsonPath中含有多相数组"));
+        }*/
+
+        if(hasArray){
+            for(List<String> result:results){
+                List<String> newResult=new ArrayList<>();
+                if(result.size()<maxArraySize){
+                    for(int i = 0;i<maxArraySize;i++){
+                        if(i<result.size()){
+                            newResult.add(result.get(i));
+                        }else {
+                            newResult.add(result.get(0));
+                        }
+                    }
+                    results2.add(newResult);
+                }else {
+                    results2.add(result);
+                }
+            }
+        }
+
+
+
+        /*for (int i = 1; i < results.size(); i++) {
             List<?> result0 = results.get(0);
             List<?> result = results.get(i);
             if (result0.size() != result.size()) {
@@ -275,9 +314,9 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
                                 jsonPaths[i].getPath(),
                                 result.size()));
             }
-        }
+        }*/
 
-        return dataFlip(results);
+        return dataFlip(results2);
     }
 
     private String getPartOfJson(String data) {
