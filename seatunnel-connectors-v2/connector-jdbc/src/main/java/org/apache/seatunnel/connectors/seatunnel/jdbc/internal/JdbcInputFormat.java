@@ -97,7 +97,8 @@ public class JdbcInputFormat implements Serializable {
 
             statement = chunkSplitter.generateSplitStatement(inputSplit, splitTableSchema);
             if(inputSplit.getSplitFetchSize()!=null&&inputSplit.getSplitFetchSize()>0){
-                statement.setFetchSize(inputSplit.getSplitFetchSize());
+                this.statement.setMaxRows(inputSplit.getSplitFetchSize());
+                LOG.debug("InputSplit Open Read,the inputSplit:" + inputSplit);
             }
             resultSet = statement.executeQuery();
             hasNext = resultSet.next();
