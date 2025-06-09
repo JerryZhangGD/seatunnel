@@ -107,12 +107,9 @@ public class OracleCatalog extends AbstractJdbcCatalog {
 
     @Override
     protected String getTableWithConditionSql(TablePath tablePath) {
-        return getListTableSql(tablePath.getDatabaseName())
-                + "  and  OWNER = '"
-                + tablePath.getSchemaName()
-                + "' and table_name = '"
-                + tablePath.getTableName()
-                + "'";
+        return getListTableSql(tablePath.getDatabaseName()) + "  and  OWNER = '" + tablePath.getSchemaName() + "' and table_name = '" + tablePath.getTableName() + "'"
+                +" UNION "
+                +getListViewSql(tablePath.getDatabaseName()) + "  and  OWNER = '" + tablePath.getSchemaName() + "' and VIEW_NAME = '" + tablePath.getTableName() + "'";
     }
 
     @Override
@@ -148,6 +145,14 @@ public class OracleCatalog extends AbstractJdbcCatalog {
                 + "  AND TABLE_NAME NOT LIKE 'MDRS_%'"
                 + "  AND TABLE_NAME NOT LIKE 'MDXT_%'"
                 + "  AND (TABLE_NAME NOT LIKE 'SYS_IOT_OVER_%' AND IOT_NAME IS NULL)";
+    }
+
+    @Override
+    protected String getListViewSql(String databaseName) {
+        return "SELECT OWNER, VIEW_NAME AS TABLE_NAME FROM ALL_VIEWS"
+                + "  WHERE VIEW_NAME NOT LIKE 'MDRT_%'"
+                + "  AND VIEW_NAME NOT LIKE 'MDRS_%'"
+                + "  AND VIEW_NAME NOT LIKE 'MDXT_%'";
     }
 
     @Override

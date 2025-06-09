@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.http.source;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.seatunnel.shade.com.google.common.base.Strings;
 
 import org.apache.seatunnel.api.serialization.DeserializationSchema;
@@ -265,10 +266,8 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
         }
         Boolean hasArray = false;
         Integer maxArraySize = 0;
-        Integer arrayNum = 0;
         for(List<String> result:results){
             if(result.size()>1){
-                arrayNum++;
                 hasArray = true;
                 if(result.size()>maxArraySize){
                     maxArraySize = result.size();
@@ -315,8 +314,10 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
                                 result.size()));
             }
         }*/
-
-        return dataFlip(results2);
+        if(CollectionUtils.isNotEmpty(results2)){
+            return dataFlip(results2);
+        }
+        return dataFlip(results);
     }
 
     private String getPartOfJson(String data) {
