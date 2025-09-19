@@ -18,11 +18,11 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.sqlserver;
 
-import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.Column;
-import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.catalog.*;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
+import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
+import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
@@ -34,8 +34,12 @@ import org.apache.commons.lang3.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 public class SqlServerCatalog extends AbstractJdbcCatalog {
@@ -177,5 +181,43 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
     @Override
     protected String getTruncateTableSql(TablePath tablePath) throws CatalogException {
         return String.format("TRUNCATE TABLE  %s", tablePath.getFullNameWithQuoted("[", "]"));
+    }
+
+    @Override
+    public CatalogTable getTable(TablePath tablePath)
+            throws CatalogException, TableNotExistException {
+        String dbUrl;
+        if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+            dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        } else {
+            dbUrl = getUrlFromDatabaseName(defaultDatabase);
+        }
+        Connection conn = getConnection(dbUrl);
+        try {
+            DatabaseMetaData metaData = conn.getMetaData();
+            Optional<String> comment = getTableComment(metaData, tablePath);
+            Optional<PrimaryKey> primaryKey = getPrimaryKey(metaData, tablePath);
+            List<ConstraintKey> constraintKeys = getConstraintKeys(metaData, tablePath);
+            TableSchema.Builder tableSchemaBuilder =
+                    buildColumnsReturnTablaSchemaBuilder(tablePath, conn);
+            // add primary key
+            primaryKey.ifPresent(tableSchemaBuilder::primaryKey);
+            // add constraint key
+            constraintKeys.forEach(tableSchemaBuilder::constraintKey);
+            TableIdentifier tableIdentifier = getTableIdentifier(tablePath);
+            return CatalogTable.of(
+                    tableIdentifier,
+                    tableSchemaBuilder.build(),
+                    buildConnectorOptions(tablePath),
+                    Collections.emptyList(),
+                    comment.orElse(""),
+                    catalogName);
+
+        } catch (SeaTunnelRuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CatalogException(
+                    String.format("Failed getting table %s", tablePath.getFullName()), e);
+        }
     }
 }

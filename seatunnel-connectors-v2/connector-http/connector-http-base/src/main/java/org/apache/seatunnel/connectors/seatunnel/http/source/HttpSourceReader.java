@@ -17,6 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.http.source;
 
+import com.jayway.jsonpath.spi.json.GsonJsonProvider;
+import net.minidev.json.JSONArray;
+import net.minidev.json.JSONObject;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.seatunnel.shade.com.google.common.base.Strings;
 
@@ -47,12 +50,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Setter
@@ -332,7 +330,14 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
             List<String> result = results.get(i);
             if (i == 0) {
                 for (Object o : result) {
-                    String val = o == null ? null : o.toString();
+                    String val = null;
+                    if(o!=null){
+                        if(o instanceof LinkedHashMap){
+                            val = JSONObject.toJSONString((LinkedHashMap)o);
+                        }else {
+                            val = o.toString();
+                        }
+                    }
                     List<String> row = new ArrayList<>(jsonPaths.length);
                     row.add(val);
                     datas.add(row);
