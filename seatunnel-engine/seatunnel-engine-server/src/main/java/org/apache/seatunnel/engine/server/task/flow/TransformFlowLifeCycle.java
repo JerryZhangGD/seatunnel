@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.table.type.Record;
 import org.apache.seatunnel.api.transform.Collector;
 import org.apache.seatunnel.api.transform.SeaTunnelFlatMapTransform;
 import org.apache.seatunnel.api.transform.SeaTunnelMapTransform;
+import org.apache.seatunnel.api.transform.SeaTunnelStatefulTransform;
 import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 import org.apache.seatunnel.engine.common.utils.concurrent.CompletableFuture;
 import org.apache.seatunnel.engine.core.dag.actions.TransformChainAction;
@@ -37,8 +38,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class TransformFlowLifeCycle<T> extends ActionFlowLifeCycle
@@ -82,10 +86,19 @@ public class TransformFlowLifeCycle<T> extends ActionFlowLifeCycle
         if (record.getData() instanceof Barrier) {
             CheckpointBarrier barrier = (CheckpointBarrier) record.getData();
             if (barrier.prepareClose(this.runningTask.getTaskLocation())) {
+                finishTransforms();
                 prepareClose = true;
             }
             if (barrier.snapshot()) {
-                runningTask.addState(barrier, ActionStateKey.of(action), Collections.emptyList());
+                List<byte[]> states =
+                        transform.stream()
+                                .filter(t -> t instanceof SeaTunnelStatefulTransform)
+                                .map(
+                                        t ->
+                                                ((SeaTunnelStatefulTransform<T>) t)
+                                                        .snapshotState(barrier.getId()))
+                                .collect(Collectors.toList());
+                runningTask.addState(barrier, ActionStateKey.of(action), states);
             }
             // ack after #addState
             runningTask.ack(barrier);
@@ -137,7 +150,13 @@ public class TransformFlowLifeCycle<T> extends ActionFlowLifeCycle
         List<T> dataList = new ArrayList<>();
         dataList.add(inputData);
 
-        for (SeaTunnelTransform<T> transformer : transform) {
+        return transform(dataList, 0);
+    }
+
+    private List<T> transform(List<T> dataList, int startIndex) {
+
+        for (int i = startIndex; i < transform.size(); i++) {
+            SeaTunnelTransform<T> transformer = transform.get(i);
             List<T> nextInputDataList = new ArrayList<>();
             if (transformer instanceof SeaTunnelFlatMapTransform) {
                 SeaTunnelFlatMapTransform<T> transformDecorator =
@@ -177,9 +196,49 @@ public class TransformFlowLifeCycle<T> extends ActionFlowLifeCycle
         return dataList;
     }
 
+    private void finishTransforms() {
+        for (int i = 0; i < transform.size(); i++) {
+            SeaTunnelTransform<T> transformer = transform.get(i);
+            if (!(transformer instanceof SeaTunnelStatefulTransform)) {
+                continue;
+            }
+            List<T> outputDataList = ((SeaTunnelStatefulTransform<T>) transformer).finish();
+            if (CollectionUtils.isEmpty(outputDataList)) {
+                continue;
+            }
+            outputDataList = transform(outputDataList, i + 1);
+            for (T outputData : outputDataList) {
+                collector.collect(new Record<>(outputData));
+            }
+        }
+    }
+
     @Override
     public void restoreState(List<ActionSubtaskState> actionStateList) throws Exception {
-        // nothing
+        List<byte[]> states =
+                actionStateList.stream()
+                        .map(ActionSubtaskState::getState)
+                        .flatMap(Collection::stream)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+        if (states.isEmpty()) {
+            return;
+        }
+
+        List<SeaTunnelStatefulTransform<T>> statefulTransforms =
+                transform.stream()
+                        .filter(t -> t instanceof SeaTunnelStatefulTransform)
+                        .map(t -> (SeaTunnelStatefulTransform<T>) t)
+                        .collect(Collectors.toList());
+        if (states.size() != statefulTransforms.size()) {
+            throw new IllegalStateException(
+                    String.format(
+                            "Transform checkpoint state count %d does not match stateful transform count %d",
+                            states.size(), statefulTransforms.size()));
+        }
+        for (int i = 0; i < states.size(); i++) {
+            statefulTransforms.get(i).restoreState(states.get(i));
+        }
     }
 
     @Override

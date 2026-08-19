@@ -141,4 +141,18 @@ public class SeaTunnelRowTest {
         SeaTunnelRow row = new SeaTunnelRow(new Object[] {map});
         Assertions.assertEquals(8, row.getBytesSize());
     }
+
+    @Test
+    void testWithSeaTunnelRowArray() {
+        SeaTunnelRow[] data =
+                new SeaTunnelRow[] {
+                    new SeaTunnelRow(new Object[] {1, "abc"}),
+                    new SeaTunnelRow(new Object[] {2, "de"})
+                };
+        SeaTunnelRow row =
+                new SeaTunnelRow(
+                        new Object[] {data, "active", Collections.singletonMap("source", "mysql")});
+
+        Assertions.assertEquals(30, row.getBytesSize());
+    }
 }

@@ -340,6 +340,13 @@ public final class SeaTunnelRow implements Serializable {
                 }
                 return rowSize;
             default:
+                if (v instanceof Object[]) {
+                    int arraySize = 0;
+                    for (Object element : (Object[]) v) {
+                        arraySize += getBytesForValue(element);
+                    }
+                    return arraySize;
+                }
                 if (v instanceof Map) {
                     int mapSize = 0;
                     for (Map.Entry<?, ?> entry : ((Map<?, ?>) v).entrySet()) {
