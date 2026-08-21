@@ -48,7 +48,7 @@ public class EnvCommonOptions {
     public static Option<Integer> JOB_RETRY_TIMES =
             Options.key("job.retry.times")
                     .intType()
-                    .defaultValue(3)
+                    .defaultValue(0)
                     .withDescription("The retry times of this job");
 
     public static Option<Integer> JOB_RETRY_INTERVAL_SECONDS =
